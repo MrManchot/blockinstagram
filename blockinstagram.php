@@ -110,8 +110,13 @@ class BlockInstagram extends Module
     {
         $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_CACHE_DURATION'));
 
+        # Gestion du slug du cache
         $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
-        $cacheId = $this->name . '|' . $conf['BI_USERNAME'] . '|' . $cacheIdDate;
+        $cache_array = array($this->name, $conf['BI_USERNAME'], $cacheIdDate);
+        if (Language::isMultiLanguageActivated()) {
+            $cache_array[] = (int)$this->context->language->id;
+        }
+        $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
             $instagram_pics = array();
