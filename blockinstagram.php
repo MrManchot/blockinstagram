@@ -112,10 +112,7 @@ class BlockInstagram extends Module
 
         # Gestion du slug du cache
         $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
-        $cache_array = array($this->name, $conf['BI_USERNAME'], $cacheIdDate);
-        if (Language::isMultiLanguageActivated()) {
-            $cache_array[] = (int)$this->context->language->id;
-        }
+        $cache_array = array($this->name, $conf['BI_USERNAME'], $cacheIdDate, (int)$this->context->language->id);
         $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
