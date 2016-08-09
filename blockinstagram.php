@@ -17,9 +17,9 @@ class BlockInstagram extends Module
     public function install()
     {
         return parent::install() &&
-        Configuration::updateValue('BI_USERNAME', 'taylorswift') &&
-        Configuration::updateValue('BI_NB_IMAGE', 12) &&
-        Configuration::updateValue('BI_SIZE', 195) &&
+        Configuration::updateValue('BI_USERNAME', 'instagram') &&
+        Configuration::updateValue('BI_NB_IMAGE', 8) &&
+        Configuration::updateValue('BI_SIZE', 300) &&
         Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
         $this->registerHook('displayHome');
     }
@@ -127,7 +127,7 @@ class BlockInstagram extends Module
                     $image = self::imagickResize($item->images->standard_resolution->url, 'crop', $conf['BI_SIZE']);
                     $instagram_pics[] = array(
                         'image' => $image,
-                        'caption' => $item->caption->text,
+                        'caption' => isset($item->caption->text) ? $item->caption->text : '',
                         'link' => $item->link
                     );
                 }
@@ -170,7 +170,8 @@ class BlockInstagram extends Module
             $thumb->writeImage($image_local);
         }
 
-        return _PS_TMP_IMG_ . $image_name;
+        $context = Context::getContext();
+        return $context->link->getMediaLink(_PS_TMP_IMG_ . $image_name);
     }
 
 }
