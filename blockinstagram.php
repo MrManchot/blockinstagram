@@ -6,8 +6,8 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.0';
-        $this->author = 'Anonymous';
+        $this->version = '1.0.1';
+        $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
         $this->description = $this->l('Display Instagram pics from an account');
@@ -127,6 +127,7 @@ class BlockInstagram extends Module
                     $image = self::imagickResize($item->images->standard_resolution->url, 'crop', $conf['BI_SIZE']);
                     $instagram_pics[] = array(
                         'image' => $image,
+                        'original_image' => $item->images->standard_resolution->url,
                         'caption' => isset($item->caption->text) ? $item->caption->text : '',
                         'link' => $item->link
                     );
