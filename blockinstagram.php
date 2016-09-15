@@ -6,7 +6,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -21,6 +21,7 @@ class BlockInstagram extends Module
         Configuration::updateValue('BI_NB_IMAGE', 8) &&
         Configuration::updateValue('BI_SIZE', 300) &&
         Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
+        $this->registerHook('blockInstagram') &&
         $this->registerHook('displayHome');
     }
 
@@ -141,6 +142,13 @@ class BlockInstagram extends Module
         }
 
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
+    }
+    
+    
+    # Use in *.tpl : {hook h='blockInstagram' mod='blockinstagram'}
+    # Work only if not hook on displayHome
+    public function hookBlockInstagram($params) {
+        return $this->isRegisteredInHook('displayHome') ? false : $this->hookDisplayHome($params);
     }
 
 
