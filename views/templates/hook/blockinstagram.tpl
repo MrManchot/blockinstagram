@@ -8,7 +8,7 @@
 		{foreach $instagram_pics as $pic}
 			<div class="col-xs-6 col-sm-3" style="margin-bottom:30px;">
 				<a href="{$pic.link}" title="{$pic.caption|escape:'html':'UTF-8'}" target="_blank" rel="nofollow">
-					<img src="{$pic.image}" class="img-responsive" height="{$size}" width="{$size}" />
+					<img src="{$pic.image}" class="img-responsive" />
 				</a>
 			</div>
 		{/foreach}

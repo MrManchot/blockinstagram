@@ -6,7 +6,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.2';
+        $this->version = '1.0.3';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -21,6 +21,7 @@ class BlockInstagram extends Module
         Configuration::updateValue('BI_NB_IMAGE', 8) &&
         Configuration::updateValue('BI_SIZE', 300) &&
         Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
+        Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
         $this->registerHook('blockInstagram') &&
         $this->registerHook('displayHome');
     }
@@ -35,6 +36,7 @@ class BlockInstagram extends Module
         if (Tools::isSubmit('subMOD')) {
             Configuration::updateValue('BI_USERNAME', Tools::getValue('username'));
             Configuration::updateValue('BI_NB_IMAGE', intval(Tools::getValue('nb_image')));
+            Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
             Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('size'));
             return $this->displayConfirmation($this->l('Settings updated'));
@@ -58,6 +60,7 @@ class BlockInstagram extends Module
         $helper->fields_value['nb_image'] = Configuration::get('BI_NB_IMAGE');
         $helper->fields_value['size'] = Configuration::get('BI_SIZE');
         $helper->fields_value['cache_duration'] = Configuration::get('BI_CACHE_DURATION');
+        $helper->fields_value['image_format'] = Configuration::get('BI_IMAGE_FORMAT');
 
         $helper->submit_action = 'subMOD';
 
@@ -77,12 +80,28 @@ class BlockInstagram extends Module
                     array(
                         'type' => 'text',
                         'label' => $this->l('Image number :'),
-                        'name' => 'nb_image'
+                        'name' => 'nb_image',
+                        'desc'  => $this->l('You can retry 20 pics maximum')
+                    ),
+                    array(
+                        'type' => 'select',
+                        'label' => $this->l('Image format :'),
+                        'name' => 'image_format',
+                        'options'  => array(
+                            'query' => array(
+                                array('id'   => 'thumbnail', 'name' => $this->l('Thumbnail (150 X 150) - Square crop')),
+                                array('id'   => 'low_resolution', 'name' => $this->l('Low resolution (320 x 320)')),
+                                array('id'   => 'standard_resolution', 'name' => $this->l('Standard resolution (612 x 612)'))
+                            ),
+                            'id'    => 'id',
+                            'name'  => 'name'
+                        )
                     ),
                     array(
                         'type' => 'text',
-                        'label' => $this->l('Image size in pixel :'),
-                        'name' => 'size'
+                        'label' => $this->l('Resize size in pixel :'),
+                        'name' => 'size',
+                        'desc'  => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option)')
                     ),
                     array(
                         'type' => 'select',
@@ -109,7 +128,7 @@ class BlockInstagram extends Module
 
     public function hookDisplayHome($params)
     {
-        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_CACHE_DURATION'));
+        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_CACHE_DURATION', 'BI_IMAGE_FORMAT'));
 
         # Gestion du slug du cache
         $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
@@ -125,7 +144,12 @@ class BlockInstagram extends Module
             if ($values->status == 'ok') {
                 $items = array_slice($values->items, 0, $conf['BI_NB_IMAGE']);
                 foreach ($items as $item) {
-                    $image = self::imagickResize($item->images->standard_resolution->url, 'crop', $conf['BI_SIZE']);
+
+                    $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
+                    $image = $item->images->{$image_format}->url;
+                    if($conf['BI_SIZE']) {
+                        $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
+                    }
                     $instagram_pics[] = array(
                         'image' => $image,
                         'original_image' => $item->images->standard_resolution->url,
