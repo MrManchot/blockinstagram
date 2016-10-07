@@ -6,7 +6,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.3';
+        $this->version = '1.0.4';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -128,7 +128,7 @@ class BlockInstagram extends Module
 
     public function hookDisplayHome($params)
     {
-        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_CACHE_DURATION', 'BI_IMAGE_FORMAT'));
+        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_CACHE_DURATION'));
 
         # Gestion du slug du cache
         $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
@@ -136,33 +136,10 @@ class BlockInstagram extends Module
         $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
-            $instagram_pics = array();
-            $json_url = 'https://www.instagram.com/' . $conf['BI_USERNAME'] . '/media/';
-            $ctx = stream_context_create(array('http' => array('timeout' => 2)));
-            $json = file_get_contents($json_url, false, $ctx);
-            $values = json_decode($json);
-            if ($values->status == 'ok') {
-                $items = array_slice($values->items, 0, $conf['BI_NB_IMAGE']);
-                foreach ($items as $item) {
-
-                    $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
-                    $image = $item->images->{$image_format}->url;
-                    if($conf['BI_SIZE']) {
-                        $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
-                    }
-                    $instagram_pics[] = array(
-                        'image' => $image,
-                        'original_image' => $item->images->standard_resolution->url,
-                        'caption' => isset($item->caption->text) ? $item->caption->text : '',
-                        'link' => $item->link
-                    );
-                }
-                $this->context->smarty->assign(array(
-                    'instagram_pics' => $instagram_pics,
-                    'username' => $conf['BI_USERNAME'],
-                    'size' => $conf['BI_SIZE']
-                ));
-            }
+            $this->context->smarty->assign(array(
+                'instagram_pics' => $this->getPics(),
+                'username' => $conf['BI_USERNAME']
+            ));
         }
 
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
@@ -173,6 +150,38 @@ class BlockInstagram extends Module
     # Work only if not hook on displayHome
     public function hookBlockInstagram($params) {
         return $this->isRegisteredInHook('displayHome') ? false : $this->hookDisplayHome($params);
+    }
+
+
+    public function getPics() {
+
+        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
+
+        $instagram_pics = array();
+        $json_url = 'https://www.instagram.com/' . $conf['BI_USERNAME'] . '/media/';
+        $ctx = stream_context_create(array('http' => array('timeout' => 2)));
+        $json = file_get_contents($json_url, false, $ctx);
+        $values = json_decode($json);
+        if ($values->status != 'ok')
+            return array();
+
+        $items = array_slice($values->items, 0, $conf['BI_NB_IMAGE']);
+        foreach ($items as $item) {
+
+            $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
+            $image = $item->images->{$image_format}->url;
+            if($conf['BI_SIZE']) {
+                $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
+            }
+            $instagram_pics[] = array(
+                'image' => $image,
+                'original_image' => $item->images->standard_resolution->url,
+                'caption' => isset($item->caption->text) ? $item->caption->text : '',
+                'link' => $item->link
+            );
+        }
+        return $instagram_pics;
+
     }
 
 
