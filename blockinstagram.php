@@ -6,7 +6,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.4';
+        $this->version = '1.0.5';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -38,7 +38,7 @@ class BlockInstagram extends Module
             Configuration::updateValue('BI_NB_IMAGE', intval(Tools::getValue('nb_image')));
             Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
-            Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('size'));
+            Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('cache_duration'));
             return $this->displayConfirmation($this->l('Settings updated'));
         }
     }
