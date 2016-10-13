@@ -6,11 +6,11 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.5';
+        $this->version = '1.0.6';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
-        $this->description = $this->l('Display Instagram pics from an account');
+        $this->controllers = array('default');
         $this->bootstrap = 1;
     }
 
@@ -153,7 +153,7 @@ class BlockInstagram extends Module
     }
 
 
-    public function getPics() {
+    public function getPics($all = false) {
 
         $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
 
@@ -165,7 +165,11 @@ class BlockInstagram extends Module
         if ($values->status != 'ok')
             return array();
 
-        $items = array_slice($values->items, 0, $conf['BI_NB_IMAGE']);
+        $items = $values->items;
+
+        if(!$all)
+            $items = array_slice($items, 0, $conf['BI_NB_IMAGE']);
+
         foreach ($items as $item) {
 
             $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
