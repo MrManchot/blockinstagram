@@ -10,6 +10,7 @@ class BlockInstagram extends Module
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
+        $this->description = $this->l('Display Instagram pics from an account');
         $this->controllers = array('default');
         $this->bootstrap = 1;
     }
