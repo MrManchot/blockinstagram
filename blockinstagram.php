@@ -3,10 +3,12 @@
 class BlockInstagram extends Module
 {
 
+    const BI_BASE_FEED = 'https://www.instagram.com/';
+
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.0.6';
+        $this->version = '1.1.0';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -129,6 +131,7 @@ class BlockInstagram extends Module
 
     public function hookDisplayHome($params)
     {
+
         $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_CACHE_DURATION'));
 
         # Gestion du slug du cache
@@ -139,7 +142,7 @@ class BlockInstagram extends Module
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
             $this->context->smarty->assign(array(
                 'instagram_pics' => $this->getPics(),
-                'username' => $conf['BI_USERNAME']
+                'instagram_user' => $this->getAccount($conf['BI_USERNAME'])
             ));
         }
 
@@ -154,15 +157,36 @@ class BlockInstagram extends Module
     }
 
 
+    public function getAccount($username) {
+        $account = $this->getFeed($username.'/?__a=1');
+        return array(
+            'followed_by' => self::niceNumberDisplay($account->user->followed_by->count),
+            'biography' => $account->user->biography,
+            'external_url' => $account->user->external_url,
+            'follows' => self::niceNumberDisplay($account->user->follows->count),
+            'profile_pic' => $account->user->profile_pic_url,
+            'posts' => self::niceNumberDisplay($account->user->media->count),
+            'full_name' => $account->user->full_name,
+            'username' => $account->user->username
+        );
+    }
+
+
+    public static function getFeed($feed) {
+        $json_url = self::BI_BASE_FEED . $feed;
+        $ctx = stream_context_create(array('http' => array('timeout' => 2)));
+        $json = file_get_contents($json_url, false, $ctx);
+        return json_decode($json);
+    }
+
+
     public function getPics($all = false) {
 
         $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
 
         $instagram_pics = array();
-        $json_url = 'https://www.instagram.com/' . $conf['BI_USERNAME'] . '/media/';
-        $ctx = stream_context_create(array('http' => array('timeout' => 2)));
-        $json = file_get_contents($json_url, false, $ctx);
-        $values = json_decode($json);
+        $values = $this->getFeed($conf['BI_USERNAME'] . '/media/');
+
         if ($values->status != 'ok')
             return array();
 
@@ -178,11 +202,16 @@ class BlockInstagram extends Module
             if($conf['BI_SIZE']) {
                 $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
             }
+
+            $post = $this->getFeed('p/'.$item->code.'/?__a=1');
             $instagram_pics[] = array(
                 'image' => $image,
                 'original_image' => $item->images->standard_resolution->url,
                 'caption' => isset($item->caption->text) ? $item->caption->text : '',
-                'link' => $item->link
+                'link' => self::niceNumberDisplay($item->link),
+                'likes' => self::niceNumberDisplay($post->media->likes->count),
+                'comments' => self::niceNumberDisplay($post->media->comments->count),
+                'date' => date($this->context->language->date_format_full, $post->media->date)
             );
         }
         return $instagram_pics;
@@ -219,6 +248,17 @@ class BlockInstagram extends Module
 
         $context = Context::getContext();
         return $context->link->getMediaLink(_PS_TMP_IMG_ . $image_name);
+    }
+
+    public static function niceNumberDisplay($n) {
+        $n = floatval($n);
+        if($n > 1000000) {
+            return round($n / 1000000, 1).'m';
+        } elseif($n > 1000) {
+            return round($n / 1000, 1).'k';
+        } else {
+            return number_format($n, 0, ' ', ' ');
+        }
     }
 
 }

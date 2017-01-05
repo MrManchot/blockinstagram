@@ -10,7 +10,7 @@ class BlockInstagramDefaultModuleFrontController extends ModuleFrontController
         $blockinstagram = Module::getInstanceByName('blockinstagram');
         $this->context->smarty->assign(array(
             'instagram_pics' => $blockinstagram->getPics(true),
-            'username' => Configuration::get('BI_USERNAME')
+            'instagram_user' => $blockinstagram->getAccount(Configuration::get('BI_USERNAME'))
         ));
 
         $this->setTemplate('default.tpl');
