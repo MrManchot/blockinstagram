@@ -208,7 +208,7 @@ class BlockInstagram extends Module
                 'image' => $image,
                 'original_image' => $item->images->standard_resolution->url,
                 'caption' => isset($item->caption->text) ? $item->caption->text : '',
-                'link' => self::niceNumberDisplay($item->link),
+                'link' => $item->link,
                 'likes' => self::niceNumberDisplay($post->media->likes->count),
                 'comments' => self::niceNumberDisplay($post->media->comments->count),
                 'date' => date($this->context->language->date_format_full, $post->media->date)
