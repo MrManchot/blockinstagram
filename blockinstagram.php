@@ -209,9 +209,9 @@ class BlockInstagram extends Module
                 'original_image' => $item->images->standard_resolution->url,
                 'caption' => isset($item->caption->text) ? $item->caption->text : '',
                 'link' => $item->link,
-                'likes' => self::niceNumberDisplay($post->media->likes->count),
-                'comments' => self::niceNumberDisplay($post->media->comments->count),
-                'date' => date($this->context->language->date_format_full, $post->media->date)
+                'likes' => self::niceNumberDisplay($post->graphql->shortcode_media->edge_media_preview_like->count),
+                'comments' => self::niceNumberDisplay($post->graphql->shortcode_media->edge_media_to_comment->count),
+                'date' => date($this->context->language->date_format_full, $post->graphql->shortcode_media->taken_at_timestamp)
             );
         }
         return $instagram_pics;
