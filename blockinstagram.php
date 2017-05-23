@@ -8,7 +8,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.1.0';
+        $this->version = '1.1.1';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -159,6 +159,10 @@ class BlockInstagram extends Module
 
     public function getAccount($username) {
         $account = $this->getFeed($username.'/?__a=1');
+
+        if(!$account)
+            return false;
+
         return array(
             'followed_by' => self::niceNumberDisplay($account->user->followed_by->count),
             'biography' => $account->user->biography,
@@ -175,8 +179,8 @@ class BlockInstagram extends Module
     public static function getFeed($feed) {
         $json_url = self::BI_BASE_FEED . $feed;
         $ctx = stream_context_create(array('http' => array('timeout' => 2)));
-        $json = file_get_contents($json_url, false, $ctx);
-        return json_decode($json);
+        $json = @file_get_contents($json_url, false, $ctx);
+        return $json ? json_decode($json) : false;
     }
 
 
@@ -187,7 +191,7 @@ class BlockInstagram extends Module
         $instagram_pics = array();
         $values = $this->getFeed($conf['BI_USERNAME'] . '/media/');
 
-        if ($values->status != 'ok')
+        if (!$values || $values->status != 'ok')
             return array();
 
         $items = $values->items;
