@@ -8,7 +8,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.1.1';
+        $this->version = '1.1.2';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -37,7 +37,10 @@ class BlockInstagram extends Module
     private function _postProcess()
     {
         if (Tools::isSubmit('subMOD')) {
-            Configuration::updateValue('BI_USERNAME', Tools::getValue('username'));
+	        $languages = Language::getLanguages(false);
+	        foreach ($languages as $lang) {
+		        Configuration::updateValue('BI_USERNAME_' . $lang['id_lang'], Tools::getValue('username_' . $lang['id_lang']));
+	        }
             Configuration::updateValue('BI_NB_IMAGE', intval(Tools::getValue('nb_image')));
             Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
@@ -59,7 +62,10 @@ class BlockInstagram extends Module
         $helper->allow_employee_form_lang = $this->context->controller->allow_employee_form_lang;
         $helper->title = $this->displayName;
 
-        $helper->fields_value['username'] = Configuration::get('BI_USERNAME');
+	    $languages = Language::getLanguages(false);
+	    foreach ($languages as $lang) {
+		    $helper->fields_value['username'][$lang['id_lang']] = Configuration::get('BI_USERNAME_' . $lang['id_lang']);
+	    }
         $helper->fields_value['nb_image'] = Configuration::get('BI_NB_IMAGE');
         $helper->fields_value['size'] = Configuration::get('BI_SIZE');
         $helper->fields_value['cache_duration'] = Configuration::get('BI_CACHE_DURATION');
@@ -78,7 +84,8 @@ class BlockInstagram extends Module
                     array(
                         'type' => 'text',
                         'label' => $this->l('Instagram Username :'),
-                        'name' => 'username'
+                        'name' => 'username',
+	                    'lang' => true
                     ),
                     array(
                         'type' => 'text',
@@ -132,22 +139,40 @@ class BlockInstagram extends Module
     public function hookDisplayHome($params)
     {
 
-        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_CACHE_DURATION'));
+        $cache_duration = Configuration::get('BI_CACHE_DURATION');
+        $username = $this->getUsername();
 
         # Gestion du slug du cache
-        $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
-        $cache_array = array($this->name, $conf['BI_USERNAME'], $cacheIdDate, (int)$this->context->language->id);
+        $cacheIdDate = $cache_duration == 'day' ? date('Ymd') : date('YmdH');
+        $cache_array = array($this->name, $username, $cacheIdDate, (int)$this->context->language->id);
         $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
             $this->context->smarty->assign(array(
                 'instagram_pics' => $this->getPics(),
-                'instagram_user' => $this->getAccount($conf['BI_USERNAME'])
+                'instagram_user' => $this->getAccount($username)
             ));
         }
 
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
     }
+
+	public function getUsername()
+	{
+		$username = Configuration::get('BI_USERNAME_' . $this->context->language->id);
+		if ($username) {
+			return $username;
+		}
+
+		$default_lang = Configuration::get('PS_LANG_DEFAULT');
+		$username = Configuration::get('BI_USERNAME_' . $default_lang);
+		if ($username) {
+			return $username;
+		}
+
+		# Backward compatibility
+		return Configuration::get('BI_USERNAME');
+	}
     
     
     # Use in *.tpl : {hook h='blockInstagram' mod='blockinstagram'}
@@ -186,10 +211,10 @@ class BlockInstagram extends Module
 
     public function getPics($all = false) {
 
-        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
-
+        $conf = Configuration::getMultiple(array('BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
+		$username = $this->getUsername();
         $instagram_pics = array();
-        $values = $this->getFeed($conf['BI_USERNAME'] . '/media/');
+        $values = $this->getFeed($username . '/media/');
 
         if (!$values || $values->status != 'ok')
             return array();
