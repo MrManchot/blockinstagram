@@ -8,7 +8,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.1.2';
+        $this->version = '1.2.0';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -99,9 +99,12 @@ class BlockInstagram extends Module
                         'name' => 'image_format',
                         'options'  => array(
                             'query' => array(
-                                array('id'   => 'thumbnail', 'name' => $this->l('Thumbnail (150 X 150) - Square crop')),
-                                array('id'   => 'low_resolution', 'name' => $this->l('Low resolution (320 x 320)')),
-                                array('id'   => 'standard_resolution', 'name' => $this->l('Standard resolution (612 x 612)'))
+	                            array('id'   => 0, 'name' => $this->l('150 X 150')),
+	                            array('id'   => 1, 'name' => $this->l('240 X 240')),
+	                            array('id'   => 2, 'name' => $this->l('320 X 320')),
+	                            array('id'   => 3, 'name' => $this->l('480 X 480')),
+	                            array('id'   => 4, 'name' => $this->l('640 X 640')),
+	                            array('id'   => 'standard_resolution', 'name' => $this->l('Standard resolution (1080 x 1080)'))
                             ),
                             'id'    => 'id',
                             'name'  => 'name'
@@ -178,13 +181,12 @@ class BlockInstagram extends Module
     # Use in *.tpl : {hook h='blockInstagram' mod='blockinstagram'}
     # Work only if not hook on displayHome
     public function hookBlockInstagram($params) {
-        return $this->isRegisteredInHook('displayHome') ? false : $this->hookDisplayHome($params);
+        return $this->hookDisplayHome($params);
     }
 
 
     public function getAccount($username) {
         $account = $this->getFeed($username.'/?__a=1');
-
         if(!$account)
             return false;
 
@@ -214,33 +216,33 @@ class BlockInstagram extends Module
         $conf = Configuration::getMultiple(array('BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
 		$username = $this->getUsername();
         $instagram_pics = array();
-        $values = $this->getFeed($username . '/media/');
-
-        if (!$values || $values->status != 'ok')
+        $values = $this->getFeed($username . '/?__a=1');
+        if (!$values)
             return array();
 
-        $items = $values->items;
-
+        $items = $values->user->media->nodes;
         if(!$all)
             $items = array_slice($items, 0, $conf['BI_NB_IMAGE']);
 
-        foreach ($items as $item) {
+	    $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
 
-            $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
-            $image = $item->images->{$image_format}->url;
+	    foreach ($items as $item) {
+            if($image_format == 'standard_resolution') {
+            	$image = $item->display_src;
+            } else {
+	            $image = $item->thumbnail_resources[$image_format]->src;
+            }
             if($conf['BI_SIZE']) {
                 $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
             }
-
-            $post = $this->getFeed('p/'.$item->code.'/?__a=1');
             $instagram_pics[] = array(
                 'image' => $image,
-                'original_image' => $item->images->standard_resolution->url,
-                'caption' => isset($item->caption->text) ? $item->caption->text : '',
-                'link' => $item->link,
-                'likes' => self::niceNumberDisplay($post->graphql->shortcode_media->edge_media_preview_like->count),
-                'comments' => self::niceNumberDisplay($post->graphql->shortcode_media->edge_media_to_comment->count),
-                'date' => date($this->context->language->date_format_full, $post->graphql->shortcode_media->taken_at_timestamp)
+                'original_image' => $item->display_src,
+                'caption' => isset($item->caption) ? $item->caption : '',
+                'link' => 'https://www.instagram.com/p/'.$item->code.'/',
+                'likes' => self::niceNumberDisplay($item->likes->count),
+                'comments' => self::niceNumberDisplay($item->likes->count),
+                'date' => date($this->context->language->date_format_full, $item->date)
             );
         }
         return $instagram_pics;
