@@ -8,7 +8,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.2.0';
+        $this->version = '1.2.1';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -27,6 +27,7 @@ class BlockInstagram extends Module
         Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
         $this->registerHook('blockInstagram') &&
         $this->registerHook('displayHome');
+	    $this->_clearCache('blockinstagram.tpl');
     }
 
     public function getContent()
@@ -45,6 +46,7 @@ class BlockInstagram extends Module
             Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
             Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('cache_duration'));
+	        $this->_clearCache('blockinstagram.tpl');
             return $this->displayConfirmation($this->l('Settings updated'));
         }
     }
@@ -91,7 +93,7 @@ class BlockInstagram extends Module
                         'type' => 'text',
                         'label' => $this->l('Image number :'),
                         'name' => 'nb_image',
-                        'desc'  => $this->l('You can retry 20 pics maximum')
+                        'desc'  => $this->l('You can retry 12 pics maximum')
                     ),
                     array(
                         'type' => 'select',
@@ -142,18 +144,15 @@ class BlockInstagram extends Module
     public function hookDisplayHome($params)
     {
 
-        $cache_duration = Configuration::get('BI_CACHE_DURATION');
-        $username = $this->getUsername();
-
         # Gestion du slug du cache
-        $cacheIdDate = $cache_duration == 'day' ? date('Ymd') : date('YmdH');
-        $cache_array = array($this->name, $username, $cacheIdDate, (int)$this->context->language->id);
+	    $cache_time = Configuration::get('BI_CACHE_DURATION') == 'day' ? date('Ymd') : date('YmdH');
+        $cache_array = array($this->name, $cache_time, (int)$this->context->language->id);
         $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
             $this->context->smarty->assign(array(
                 'instagram_pics' => $this->getPics(),
-                'instagram_user' => $this->getAccount($username)
+                'instagram_user' => $this->getAccount($this->getUsername())
             ));
         }
 
