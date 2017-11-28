@@ -8,7 +8,7 @@ class BlockInstagram extends Module
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.2.1';
+        $this->version = '1.2.2';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
@@ -22,7 +22,7 @@ class BlockInstagram extends Module
         return parent::install() &&
         Configuration::updateValue('BI_USERNAME', 'instagram') &&
         Configuration::updateValue('BI_NB_IMAGE', 8) &&
-        Configuration::updateValue('BI_SIZE', 300) &&
+        Configuration::updateValue('BI_SIZE', 0) &&
         Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
         Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
         $this->registerHook('blockInstagram') &&
@@ -116,7 +116,8 @@ class BlockInstagram extends Module
                         'type' => 'text',
                         'label' => $this->l('Resize size in pixel :'),
                         'name' => 'size',
-                        'desc'  => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option)')
+                        'disabled' => !class_exists('Imagick'),
+                        'desc'  => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option) : sudo apt-get install php-imagick')
                     ),
                     array(
                         'type' => 'select',
