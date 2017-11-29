@@ -241,7 +241,7 @@ class BlockInstagram extends Module
                 'caption' => isset($item->caption) ? $item->caption : '',
                 'link' => 'https://www.instagram.com/p/'.$item->code.'/',
                 'likes' => self::niceNumberDisplay($item->likes->count),
-                'comments' => self::niceNumberDisplay($item->likes->count),
+                'comments' => self::niceNumberDisplay($item->comments->count),
                 'date' => date($this->context->language->date_format_full, $item->date)
             );
         }
