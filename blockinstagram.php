@@ -224,7 +224,7 @@ class BlockInstagram extends Module
         if(!$all)
             $items = array_slice($items, 0, $conf['BI_NB_IMAGE']);
 
-	    $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
+	    $image_format = $conf['BI_IMAGE_FORMAT'] != '' ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
 
 	    foreach ($items as $item) {
             if($image_format == 'standard_resolution') {
