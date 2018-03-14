@@ -20,14 +20,14 @@ class BlockInstagram extends Module
     public function install()
     {
         return parent::install() &&
-        Configuration::updateValue('BI_USERNAME', 'instagram') &&
-        Configuration::updateValue('BI_NB_IMAGE', 8) &&
-        Configuration::updateValue('BI_SIZE', 0) &&
-        Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
-        Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
-        $this->registerHook('blockInstagram') &&
-        $this->registerHook('displayHome');
-	    $this->_clearCache('blockinstagram.tpl');
+            Configuration::updateValue('BI_USERNAME', 'instagram') &&
+            Configuration::updateValue('BI_NB_IMAGE', 8) &&
+            Configuration::updateValue('BI_SIZE', 300) &&
+            Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
+            Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
+            $this->registerHook('blockInstagram') &&
+            $this->registerHook('displayHome');
+        $this->_clearCache('blockinstagram.tpl');
     }
 
     public function getContent()
@@ -38,15 +38,15 @@ class BlockInstagram extends Module
     private function _postProcess()
     {
         if (Tools::isSubmit('subMOD')) {
-	        $languages = Language::getLanguages(false);
-	        foreach ($languages as $lang) {
-		        Configuration::updateValue('BI_USERNAME_' . $lang['id_lang'], Tools::getValue('username_' . $lang['id_lang']));
-	        }
+            $languages = Language::getLanguages(false);
+            foreach ($languages as $lang) {
+                Configuration::updateValue('BI_USERNAME_' . $lang['id_lang'], Tools::getValue('username_' . $lang['id_lang']));
+            }
             Configuration::updateValue('BI_NB_IMAGE', intval(Tools::getValue('nb_image')));
             Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
             Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('cache_duration'));
-	        $this->_clearCache('blockinstagram.tpl');
+            $this->_clearCache('blockinstagram.tpl');
             return $this->displayConfirmation($this->l('Settings updated'));
         }
     }
@@ -64,10 +64,10 @@ class BlockInstagram extends Module
         $helper->allow_employee_form_lang = $this->context->controller->allow_employee_form_lang;
         $helper->title = $this->displayName;
 
-	    $languages = Language::getLanguages(false);
-	    foreach ($languages as $lang) {
-		    $helper->fields_value['username'][$lang['id_lang']] = Configuration::get('BI_USERNAME_' . $lang['id_lang']);
-	    }
+        $languages = Language::getLanguages(false);
+        foreach ($languages as $lang) {
+            $helper->fields_value['username'][$lang['id_lang']] = Configuration::get('BI_USERNAME_' . $lang['id_lang']);
+        }
         $helper->fields_value['nb_image'] = Configuration::get('BI_NB_IMAGE');
         $helper->fields_value['size'] = Configuration::get('BI_SIZE');
         $helper->fields_value['cache_duration'] = Configuration::get('BI_CACHE_DURATION');
@@ -87,37 +87,36 @@ class BlockInstagram extends Module
                         'type' => 'text',
                         'label' => $this->l('Instagram Username :'),
                         'name' => 'username',
-	                    'lang' => true
+                        'lang' => true
                     ),
                     array(
                         'type' => 'text',
                         'label' => $this->l('Image number :'),
                         'name' => 'nb_image',
-                        'desc'  => $this->l('You can retry 12 pics maximum')
+                        'desc' => $this->l('You can retry 12 pics maximum')
                     ),
                     array(
                         'type' => 'select',
                         'label' => $this->l('Image format :'),
                         'name' => 'image_format',
-                        'options'  => array(
+                        'options' => array(
                             'query' => array(
-	                            array('id'   => 0, 'name' => $this->l('150 X 150')),
-	                            array('id'   => 1, 'name' => $this->l('240 X 240')),
-	                            array('id'   => 2, 'name' => $this->l('320 X 320')),
-	                            array('id'   => 3, 'name' => $this->l('480 X 480')),
-	                            array('id'   => 4, 'name' => $this->l('640 X 640')),
-	                            array('id'   => 'standard_resolution', 'name' => $this->l('Standard resolution (1080 x 1080)'))
+                                array('id' => 0, 'name' => $this->l('150 X 150')),
+                                array('id' => 1, 'name' => $this->l('240 X 240')),
+                                array('id' => 2, 'name' => $this->l('320 X 320')),
+                                array('id' => 3, 'name' => $this->l('480 X 480')),
+                                array('id' => 4, 'name' => $this->l('640 X 640')),
+                                array('id' => 'standard_resolution', 'name' => $this->l('Standard resolution (1080 x 1080)'))
                             ),
-                            'id'    => 'id',
-                            'name'  => 'name'
+                            'id' => 'id',
+                            'name' => 'name'
                         )
                     ),
                     array(
                         'type' => 'text',
                         'label' => $this->l('Resize size in pixel :'),
                         'name' => 'size',
-                        'disabled' => !class_exists('Imagick'),
-                        'desc'  => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option) : sudo apt-get install php-imagick')
+                        'desc' => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option)')
                     ),
                     array(
                         'type' => 'select',
@@ -146,7 +145,7 @@ class BlockInstagram extends Module
     {
 
         # Gestion du slug du cache
-	    $cache_time = Configuration::get('BI_CACHE_DURATION') == 'day' ? date('Ymd') : date('YmdH');
+        $cache_time = Configuration::get('BI_CACHE_DURATION') == 'day' ? date('Ymd') : date('YmdH');
         $cache_array = array($this->name, $cache_time, (int)$this->context->language->id);
         $cacheId = implode('|', $cache_array);
 
@@ -160,50 +159,54 @@ class BlockInstagram extends Module
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
     }
 
-	public function getUsername()
-	{
-		$username = Configuration::get('BI_USERNAME_' . $this->context->language->id);
-		if ($username) {
-			return $username;
-		}
+    public function getUsername()
+    {
+        $username = Configuration::get('BI_USERNAME_' . $this->context->language->id);
+        if ($username) {
+            return $username;
+        }
 
-		$default_lang = Configuration::get('PS_LANG_DEFAULT');
-		$username = Configuration::get('BI_USERNAME_' . $default_lang);
-		if ($username) {
-			return $username;
-		}
+        $default_lang = Configuration::get('PS_LANG_DEFAULT');
+        $username = Configuration::get('BI_USERNAME_' . $default_lang);
+        if ($username) {
+            return $username;
+        }
 
-		# Backward compatibility
-		return Configuration::get('BI_USERNAME');
-	}
-    
-    
+        # Backward compatibility
+        return Configuration::get('BI_USERNAME');
+    }
+
+
     # Use in *.tpl : {hook h='blockInstagram' mod='blockinstagram'}
     # Work only if not hook on displayHome
-    public function hookBlockInstagram($params) {
+    public function hookBlockInstagram($params)
+    {
         return $this->hookDisplayHome($params);
     }
 
 
-    public function getAccount($username) {
-        $account = $this->getFeed($username.'/?__a=1');
-        if(!$account)
+    public function getAccount($username)
+    {
+        $account = $this->getFeed($username . '/?__a=1');
+        if (!$account)
             return false;
 
+        $user = $account->graphql->user;
         return array(
-            'followed_by' => self::niceNumberDisplay($account->user->followed_by->count),
-            'biography' => $account->user->biography,
-            'external_url' => $account->user->external_url,
-            'follows' => self::niceNumberDisplay($account->user->follows->count),
-            'profile_pic' => $account->user->profile_pic_url,
-            'posts' => self::niceNumberDisplay($account->user->media->count),
-            'full_name' => $account->user->full_name,
-            'username' => $account->user->username
+            'followed_by' => self::niceNumberDisplay($user->edge_followed_by->count),
+            'biography' => $user->biography,
+            'external_url' => $user->external_url,
+            'follows' => self::niceNumberDisplay($user->edge_follow->count),
+            'profile_pic' => $user->profile_pic_url,
+            'posts' => self::niceNumberDisplay($user->edge_owner_to_timeline_media->count),
+            'full_name' => $user->full_name,
+            'username' => $user->username
         );
     }
 
 
-    public static function getFeed($feed) {
+    public static function getFeed($feed)
+    {
         $json_url = self::BI_BASE_FEED . $feed;
         $ctx = stream_context_create(array('http' => array('timeout' => 2)));
         $json = @file_get_contents($json_url, false, $ctx);
@@ -211,40 +214,43 @@ class BlockInstagram extends Module
     }
 
 
-    public function getPics($all = false) {
+    public function getPics($all = false)
+    {
 
         $conf = Configuration::getMultiple(array('BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
-		$username = $this->getUsername();
+        $username = $this->getUsername();
         $instagram_pics = array();
         $values = $this->getFeed($username . '/?__a=1');
         if (!$values)
             return array();
 
-        $items = $values->user->media->nodes;
-        if(!$all)
+        $items = $values->graphql->user->edge_owner_to_timeline_media->edges;
+        if (!$all)
             $items = array_slice($items, 0, $conf['BI_NB_IMAGE']);
 
-	    $image_format = $conf['BI_IMAGE_FORMAT'] != '' ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
+        $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
 
-	    foreach ($items as $item) {
-            if($image_format == 'standard_resolution') {
-            	$image = $item->display_src;
+        foreach ($items as $item) {
+            $item = $item->node;
+            if ($image_format == 'standard_resolution') {
+                $image = $item->display_url;
             } else {
-	            $image = $item->thumbnail_resources[$image_format]->src;
+                $image = $item->thumbnail_resources[$image_format]->src;
             }
-            if($conf['BI_SIZE']) {
+            if ($conf['BI_SIZE']) {
                 $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
             }
             $instagram_pics[] = array(
                 'image' => $image,
-                'original_image' => $item->display_src,
-                'caption' => isset($item->caption) ? $item->caption : '',
-                'link' => 'https://www.instagram.com/p/'.$item->code.'/',
-                'likes' => self::niceNumberDisplay($item->likes->count),
-                'comments' => self::niceNumberDisplay($item->comments->count),
-                'date' => date($this->context->language->date_format_full, $item->date)
+                'original_image' => $item->display_url,
+                'caption' => isset($item->edge_media_to_caption->edges[0]->node->text) ? $item->edge_media_to_caption->edges[0]->node->text : '',
+                'link' => 'https://www.instagram.com/p/' . $item->shortcode . '/',
+                'likes' => self::niceNumberDisplay($item->edge_liked_by->count),
+                'comments' => self::niceNumberDisplay($item->edge_media_to_comment->count),
+                'date' => date($this->context->language->date_format_full, $item->taken_at_timestamp)
             );
         }
+
         return $instagram_pics;
 
     }
@@ -281,12 +287,13 @@ class BlockInstagram extends Module
         return $context->link->getMediaLink(_PS_TMP_IMG_ . $image_name);
     }
 
-    public static function niceNumberDisplay($n) {
+    public static function niceNumberDisplay($n)
+    {
         $n = floatval($n);
-        if($n > 1000000) {
-            return round($n / 1000000, 1).'m';
-        } elseif($n > 1000) {
-            return round($n / 1000, 1).'k';
+        if ($n > 1000000) {
+            return round($n / 1000000, 1) . 'm';
+        } elseif ($n > 1000) {
+            return round($n / 1000, 1) . 'k';
         } else {
             return number_format($n, 0, ' ', ' ');
         }
