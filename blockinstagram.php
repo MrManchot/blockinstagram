@@ -3,13 +3,16 @@
 class BlockInstagram extends Module
 {
 
-    const BI_BASE_FEED = 'https://www.instagram.com/';
+    const BI_BASE_FEED = 'https://ig.axome.me/api/feed/';
+
+    public $user_info;
+    public $user_posts = array();
 
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.2.2';
-        $this->author = 'Cédric Mouleyre';
+        $this->version = '2.0.0';
+        $this->author = 'Axome';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
         $this->description = $this->l('Display Instagram pics from an account');
@@ -20,11 +23,9 @@ class BlockInstagram extends Module
     public function install()
     {
         return parent::install() &&
-            Configuration::updateValue('BI_USERNAME', 'instagram') &&
             Configuration::updateValue('BI_NB_IMAGE', 8) &&
-            Configuration::updateValue('BI_SIZE', 300) &&
+            Configuration::updateValue('BI_SIZE', 0) &&
             Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
-            Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
             $this->registerHook('blockInstagram') &&
             $this->registerHook('displayHome');
         $this->_clearCache('blockinstagram.tpl');
@@ -32,7 +33,12 @@ class BlockInstagram extends Module
 
     public function getContent()
     {
-        return $this->_postProcess() . $this->_getForm();
+
+        $warning = '';
+        if (!class_exists('Imagick')) {
+            $warning = $this->displayError('Your server need the ImageMagick PHP extension to resize pics : <em>sudo apt-get install php-imagick</em>');
+        }
+        return $warning . $this->_postProcess() . $this->_getForm();
     }
 
     private function _postProcess()
@@ -40,10 +46,10 @@ class BlockInstagram extends Module
         if (Tools::isSubmit('subMOD')) {
             $languages = Language::getLanguages(false);
             foreach ($languages as $lang) {
-                Configuration::updateValue('BI_USERNAME_' . $lang['id_lang'], Tools::getValue('username_' . $lang['id_lang']));
+                Configuration::updateValue('BI_API_KEY_' . $lang['id_lang'],
+                    Tools::getValue('api_key_' . $lang['id_lang']));
             }
             Configuration::updateValue('BI_NB_IMAGE', intval(Tools::getValue('nb_image')));
-            Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
             Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('cache_duration'));
             $this->_clearCache('blockinstagram.tpl');
@@ -66,12 +72,11 @@ class BlockInstagram extends Module
 
         $languages = Language::getLanguages(false);
         foreach ($languages as $lang) {
-            $helper->fields_value['username'][$lang['id_lang']] = Configuration::get('BI_USERNAME_' . $lang['id_lang']);
+            $helper->fields_value['api_key'][$lang['id_lang']] = Configuration::get('BI_API_KEY_' . $lang['id_lang']);
         }
         $helper->fields_value['nb_image'] = Configuration::get('BI_NB_IMAGE');
         $helper->fields_value['size'] = Configuration::get('BI_SIZE');
         $helper->fields_value['cache_duration'] = Configuration::get('BI_CACHE_DURATION');
-        $helper->fields_value['image_format'] = Configuration::get('BI_IMAGE_FORMAT');
 
         $helper->submit_action = 'subMOD';
 
@@ -85,9 +90,10 @@ class BlockInstagram extends Module
                 'input' => array(
                     array(
                         'type' => 'text',
-                        'label' => $this->l('Instagram Username :'),
-                        'name' => 'username',
-                        'lang' => true
+                        'label' => $this->l('Instagram API KEY :'),
+                        'name' => 'api_key',
+                        'lang' => true,
+                        'desc' => $this->l('Générer votre API KEY à cette adresse') . ' <a href="' . self::BI_BASE_FEED . '" target="_blank">' . self::BI_BASE_FEED . '</a>',
                     ),
                     array(
                         'type' => 'text',
@@ -96,27 +102,9 @@ class BlockInstagram extends Module
                         'desc' => $this->l('You can retry 12 pics maximum')
                     ),
                     array(
-                        'type' => 'select',
-                        'label' => $this->l('Image format :'),
-                        'name' => 'image_format',
-                        'options' => array(
-                            'query' => array(
-                                array('id' => 0, 'name' => $this->l('150 X 150')),
-                                array('id' => 1, 'name' => $this->l('240 X 240')),
-                                array('id' => 2, 'name' => $this->l('320 X 320')),
-                                array('id' => 3, 'name' => $this->l('480 X 480')),
-                                array('id' => 4, 'name' => $this->l('640 X 640')),
-                                array('id' => 'standard_resolution', 'name' => $this->l('Standard resolution (1080 x 1080)'))
-                            ),
-                            'id' => 'id',
-                            'name' => 'name'
-                        )
-                    ),
-                    array(
                         'type' => 'text',
                         'label' => $this->l('Resize size in pixel :'),
-                        'name' => 'size',
-                        'desc' => $this->l('Your server need the ImageMagick PHP extension to resize pics (0 to desactivate this option)')
+                        'name' => 'size'
                     ),
                     array(
                         'type' => 'select',
@@ -150,30 +138,33 @@ class BlockInstagram extends Module
         $cacheId = implode('|', $cache_array);
 
         if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
+            $feed = $this->getFeed($this->getApiKey());
+            if (!$feed) {
+                return;
+            }
+
             $this->context->smarty->assign(array(
                 'instagram_pics' => $this->getPics(),
-                'instagram_user' => $this->getAccount($this->getUsername())
+                'instagram_user' => $this->getAccount()
             ));
+
         }
 
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
     }
 
-    public function getUsername()
+    public function getApiKey()
     {
-        $username = Configuration::get('BI_USERNAME_' . $this->context->language->id);
+        $username = Configuration::get('BI_API_KEY_' . $this->context->language->id);
         if ($username) {
             return $username;
         }
 
         $default_lang = Configuration::get('PS_LANG_DEFAULT');
-        $username = Configuration::get('BI_USERNAME_' . $default_lang);
+        $username = Configuration::get('BI_API_KEY_' . $default_lang);
         if ($username) {
             return $username;
         }
-
-        # Backward compatibility
-        return Configuration::get('BI_USERNAME');
     }
 
 
@@ -185,72 +176,75 @@ class BlockInstagram extends Module
     }
 
 
-    public function getAccount($username)
+    public function getAccount()
     {
-        $account = $this->getFeed($username . '/?__a=1');
-        if (!$account)
-            return false;
 
-        $user = $account->graphql->user;
+        if (!$this->user_info instanceof stdClass) {
+            return array();
+        }
+
         return array(
-            'followed_by' => self::niceNumberDisplay($user->edge_followed_by->count),
-            'biography' => $user->biography,
-            'external_url' => $user->external_url,
-            'follows' => self::niceNumberDisplay($user->edge_follow->count),
-            'profile_pic' => $user->profile_pic_url,
-            'posts' => self::niceNumberDisplay($user->edge_owner_to_timeline_media->count),
-            'full_name' => $user->full_name,
-            'username' => $user->username
+            'followed_by' => $this->user_info->followed_by,
+            'biography' => $this->user_info->biography,
+            'external_url' => $this->user_info->external_url,
+            'follows' => $this->user_info->follows,
+            'profile_pic' => $this->user_info->profile_pic,
+            'posts' => $this->user_info->posts,
+            'full_name' => $this->user_info->full_name,
+            'username' => $this->user_info->username
         );
     }
 
 
-    public static function getFeed($feed)
+    public function getFeed($api_key)
     {
-        $json_url = self::BI_BASE_FEED . $feed;
-        $ctx = stream_context_create(array('http' => array('timeout' => 2)));
-        $json = @file_get_contents($json_url, false, $ctx);
-        return $json ? json_decode($json) : false;
+        $feed_url = self::BI_BASE_FEED . $api_key;
+        $context = stream_context_create(array('http' => array('timeout' => 2)));
+        $response = @file_get_contents($feed_url, false, $context);
+        $response = $response ? json_decode($response) : false;
+
+        # L'objet retourné contient toujours "success", "data" et "errors"
+        if (is_object($response) && false !== $response->success) {
+            $this->user_info = $response->data->user;
+            $this->user_posts = $response->data->posts;
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
     public function getPics($all = false)
     {
-
-        $conf = Configuration::getMultiple(array('BI_NB_IMAGE', 'BI_SIZE', 'BI_IMAGE_FORMAT'));
-        $username = $this->getUsername();
-        $instagram_pics = array();
-        $values = $this->getFeed($username . '/?__a=1');
-        if (!$values)
+        if (empty($this->user_posts)) {
             return array();
+        }
 
-        $items = $values->graphql->user->edge_owner_to_timeline_media->edges;
-        if (!$all)
+        $conf = Configuration::getMultiple(array('BI_NB_IMAGE', 'BI_SIZE'));
+
+        $items = $this->user_posts;
+        if (!$all && $conf['BI_NB_IMAGE'] > 0) {
             $items = array_slice($items, 0, $conf['BI_NB_IMAGE']);
+        }
 
-        $image_format = $conf['BI_IMAGE_FORMAT'] ? $conf['BI_IMAGE_FORMAT'] : 'standard_resolution';
-
+        $instagram_pics = array();
         foreach ($items as $item) {
-            $item = $item->node;
-            if ($image_format == 'standard_resolution') {
-                $image = $item->display_url;
-            } else {
-                $image = $item->thumbnail_resources[$image_format]->src;
-            }
+
             if ($conf['BI_SIZE']) {
-                $image = self::imagickResize($image, 'crop', $conf['BI_SIZE']);
+                $image = self::imagickResize($item->image, 'crop', $conf['BI_SIZE']);
+            } else {
+                $image = $item->image;
             }
             $instagram_pics[] = array(
                 'image' => $image,
-                'original_image' => $item->display_url,
-                'caption' => isset($item->edge_media_to_caption->edges[0]->node->text) ? $item->edge_media_to_caption->edges[0]->node->text : '',
-                'link' => 'https://www.instagram.com/p/' . $item->shortcode . '/',
-                'likes' => self::niceNumberDisplay($item->edge_liked_by->count),
-                'comments' => self::niceNumberDisplay($item->edge_media_to_comment->count),
-                'date' => date($this->context->language->date_format_full, $item->taken_at_timestamp)
+                'original_image' => $item->image,
+                'caption' => isset($item->caption) ? $item->caption : '',
+                'link' => $item->link,
+                'likes' => $item->likes,
+                'comments' => $item->comments,
+                'date' => date($this->context->language->date_format_full, $item->timestamp)
             );
         }
-
         return $instagram_pics;
 
     }
@@ -258,8 +252,9 @@ class BlockInstagram extends Module
 
     public static function imagickResize($image, $type, $width, $height = null)
     {
-        if (!class_exists('Imagick'))
+        if (!class_exists('Imagick')) {
             return $image;
+        }
 
         if (is_null($height)) {
             $height = $width;
