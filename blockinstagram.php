@@ -93,7 +93,7 @@ class BlockInstagram extends Module
                         'label' => $this->l('Instagram API KEY :'),
                         'name' => 'api_key',
                         'lang' => true,
-                        'desc' => $this->l('Générer votre API KEY à cette adresse') . ' <a href="' . self::BI_BASE_FEED . '" target="_blank">' . self::BI_BASE_FEED . '</a>',
+                        'desc' => $this->l('Générer votre API KEY à cette adresse') . ' <a href="https://ig.axome.me" target="_blank">https://ig.axome.me</a>',
                     ),
                     array(
                         'type' => 'text',
