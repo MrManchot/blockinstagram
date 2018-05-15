@@ -1,6 +1,8 @@
 <?php
 
-class BlockInstagram extends Module
+use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
+
+class BlockInstagram extends Module implements WidgetInterface
 {
 
     const BI_BASE_FEED = 'https://apinsta.herokuapp.com/u/';
@@ -143,20 +145,30 @@ class BlockInstagram extends Module
 
     public function hookDisplayHome($params)
     {
+        return $this->renderWidget('home');
+    }
 
+    public function renderWidget($hookName, array $configuration)
+    {
         # Gestion du slug du cache
         $cache_time = Configuration::get('BI_CACHE_DURATION') == 'day' ? date('Ymd') : date('YmdH');
-        $cache_array = array($this->name, $cache_time, (int)$this->context->language->id);
+        $cache_array = array($this->name, $cache_time, (int)$this->context->language->id, $hookName);
         $cacheId = implode('|', $cache_array);
 
-        if (!$this->isCached('blockinstagram.tpl', $cacheId)) {
-            $this->context->smarty->assign(array(
-                'instagram_pics' => $this->getPics(),
-                'instagram_user' => $this->getAccount($this->getUsername())
-            ));
+        if ($this->isCached('blockinstagram.tpl', $cacheId)) {
+            return $this->fetch('module:blockinstagram/views/templates/hook/blockinstagram.tpl', $cacheId);
         }
 
-        return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
+        $this->smarty->assign($this->getWidgetVariables($hookName, $configuration));
+        return $this->fetch('module:blockinstagram/views/templates/hook/blockinstagram.tpl');
+    }
+
+    public function getWidgetVariables($hookName, array $configuration)
+    {
+        return array(
+            'instagram_pics' => $this->getPics(),
+            'instagram_user' => $this->getAccount($this->getUsername())
+        );
     }
 
     public function getUsername()
