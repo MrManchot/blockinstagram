@@ -10,13 +10,14 @@ class BlockInstagram extends Module implements WidgetInterface
     public function __construct()
     {
         $this->name = 'blockinstagram';
-        $this->version = '1.2.3';
+        $this->version = '1.2.4';
         $this->author = 'Cédric Mouleyre';
         parent::__construct();
         $this->displayName = $this->l('Block Instagram');
         $this->description = $this->l('Display Instagram pics from an account');
         $this->controllers = array('default');
         $this->bootstrap = 1;
+        $this->ps_versions_compliancy = array('min' => '1.7.0.0', 'max' => _PS_VERSION_);
     }
 
     public function install()
