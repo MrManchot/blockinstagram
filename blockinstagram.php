@@ -146,7 +146,7 @@ class BlockInstagram extends Module implements WidgetInterface
 
     public function hookDisplayHome($params)
     {
-        return $this->renderWidget('home');
+        return $this->renderWidget('home', $params);
     }
 
     public function renderWidget($hookName, array $configuration)
