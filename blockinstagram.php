@@ -37,7 +37,12 @@ class BlockInstagram extends Module implements WidgetInterface
 
     public function getContent()
     {
-        return $this->_postProcess() . $this->_getForm();
+        $html = '';
+        if (!extension_loaded('imagick')){
+            $html .= $this->displayWarning($this->l('Imagick is not installed'));
+        }
+
+        return $html . $this->_postProcess() . $this->_getForm();
     }
 
     private function _postProcess()
