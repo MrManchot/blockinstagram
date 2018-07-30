@@ -18,6 +18,8 @@ class BlockInstagram extends Module implements WidgetInterface
         $this->controllers = array('default');
         $this->bootstrap = 1;
         $this->ps_versions_compliancy = array('min' => '1.7.0.0', 'max' => _PS_VERSION_);
+        $this->templateFile = 'module:'.$this->name.'/views/templates/hook/blockinstagram.tpl';
+
     }
 
     public function install()
@@ -30,7 +32,7 @@ class BlockInstagram extends Module implements WidgetInterface
             Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
             $this->registerHook('blockInstagram') &&
             $this->registerHook('displayHome');
-        $this->_clearCache('blockinstagram.tpl');
+        $this->_clearCache($this->templateFile);
     }
 
     public function getContent()
@@ -49,7 +51,7 @@ class BlockInstagram extends Module implements WidgetInterface
             Configuration::updateValue('BI_IMAGE_FORMAT', Tools::getValue('image_format'));
             Configuration::updateValue('BI_SIZE', intval(Tools::getValue('size')));
             Configuration::updateValue('BI_CACHE_DURATION', Tools::getValue('cache_duration'));
-            $this->_clearCache('blockinstagram.tpl');
+            $this->_clearCache($this->templateFile);
             return $this->displayConfirmation($this->l('Settings updated'));
         }
     }
@@ -156,12 +158,11 @@ class BlockInstagram extends Module implements WidgetInterface
         $cache_array = array($this->name, $cache_time, (int)$this->context->language->id, $hookName);
         $cacheId = implode('|', $cache_array);
 
-        if ($this->isCached('blockinstagram.tpl', $cacheId)) {
-            return $this->fetch('module:blockinstagram/views/templates/hook/blockinstagram.tpl', $cacheId);
+        if ($this->isCached($this->templateFile, $cacheId)) {
+            $this->smarty->assign($this->getWidgetVariables($hookName, $configuration));
         }
 
-        $this->smarty->assign($this->getWidgetVariables($hookName, $configuration));
-        return $this->fetch('module:blockinstagram/views/templates/hook/blockinstagram.tpl');
+        return $this->fetch($this->templateFile,$cacheId);
     }
 
     public function getWidgetVariables($hookName, array $configuration)
