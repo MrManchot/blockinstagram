@@ -158,12 +158,13 @@ class BlockInstagram extends Module implements WidgetInterface
 
     public function renderWidget($hookName, array $configuration)
     {
+
         # Gestion du slug du cache
         $cache_time = Configuration::get('BI_CACHE_DURATION') == 'day' ? date('Ymd') : date('YmdH');
         $cache_array = array($this->name, $cache_time, (int)$this->context->language->id, $hookName);
         $cacheId = implode('|', $cache_array);
 
-        if ($this->isCached($this->templateFile, $cacheId)) {
+        if (!$this->isCached($this->templateFile, $cacheId)) {
             $this->smarty->assign($this->getWidgetVariables($hookName, $configuration));
         }
 
